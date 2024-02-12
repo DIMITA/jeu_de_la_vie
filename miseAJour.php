@@ -39,7 +39,7 @@ function calculerGenerationSuivante($grille, $largeur, $hauteur)
 
             // Appliquer les règles du jeu de la vie
             if ($grille[$y][$x]) {
-                if ($voisinsVivants == 2 || $voisinsVivants == 3) {
+                if ($voisinsVivants == (int) $_GET["min"] || $voisinsVivants == (int) $_GET["max"]) {
                     $nouvelleGrille[$y][$x] = 1; // La cellule reste vivante
                 } else {
                     $nouvelleGrille[$y][$x] = 0; // La cellule meurt
@@ -59,8 +59,8 @@ function calculerGenerationSuivante($grille, $largeur, $hauteur)
 
 
 // Paramètres de la grille
-$largeur = 20;
-$hauteur = 20;
+$largeur = (int) $_GET["size"];
+$hauteur = (int) $_GET["size"];
 
 // Récupérer la grille actuelle depuis une source (base de données, fichier, etc.)
 // Dans cet exemple, nous utilisons une grille aléatoire pour la démonstration

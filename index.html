@@ -62,12 +62,90 @@
             background: #11e0fb;
             box-shadow: 2px 2px 2px #0000001c;
         }
+
+        .marquee-rtl {
+            max-width: 30em;
+            /* largeur de la fenêtre */
+            margin: 1em auto 2em;
+            overflow: hidden;
+            /* masque tout ce qui dépasse */
+        }
+
+        .marquee-rtl> :first-child {
+            display: inline-block;
+            /* modèle de boîte en ligne */
+            padding-right: 2em;
+            /* un peu d'espace pour la transition */
+            padding-left: 100%;
+            /* placement à droite du conteneur */
+            white-space: nowrap;
+            /* pas de passage à la ligne */
+            animation: defilement-rtl 15s infinite linear;
+        }
+
+        @keyframes defilement-rtl {
+            0% {
+                transform: translate3d(0, 0, 0);
+                /* position initiale à droite */
+            }
+
+            100% {
+                transform: translate3d(-100%, 0, 0);
+                /* position finale à gauche */
+            }
+        }
     </style>
 </head>
 
 <body>
-    <h1>Jeu de la vie</h1>
-    <div id="grille"></div>
+    <div class="marquee-rtl">
+        <!-- le contenu défilant -->
+        <div>Le Jeu de la vie</div>
+    </div>
+
+    <div class="flex justify-between">
+        <div class="w-1/2 flex justify-start items-start flex-col max-w-lg p-8">
+            <div class="flex w-full flex-wrap -mx-3 mb-6">
+                <div class="w-full  px-3 mb-6 md:mb-0">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2"
+                        for="grid-first-name">
+                        Taille
+                    </label>
+                    <input name="size" id="size"
+                        class="appearance-none block w-full bg-gray-200 text-gray-700 border border-red-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white"
+                        type="text" placeholder="Taille">
+                </div>
+
+            </div>
+
+            <div class="flex flex-wrap -mx-3 mb-2">
+
+
+                <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-zip">
+                        Min
+                    </label>
+                    <input name="policyMin" id="policyMin"
+                        class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
+                        type="number" placeholder="Valeur minimale">
+                </div>
+                <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-zip">
+                        Max
+                    </label>
+                    <input name="policyMax" id="policyMax"
+                        class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
+                        id="grid-zip" type="number" placeholder="Valeur maximal">
+                </div>
+
+                <button
+                    class="mt-6 ml-2 flex-shrink-0 bg-teal-500 hover:bg-teal-700 border-teal-500 hover:border-teal-700 text-sm border-4 text-white py-1 px-2 rounded"
+                    id="create-game">Send</button>
+            </div>
+        </div>
+        <div id="grille" class="flex justify-center mr-8"></div>
+    </div>
+
 
     <div class="chat-wrapper">
         <div id="message-box"></div>
@@ -80,6 +158,19 @@
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script>
+
+        $('#create-game').click(function () {
+
+            // Mettre à jour la grille toutes les 500ms
+            setInterval(mettreAJour, 400);
+
+            var dataReceived = [];
+
+            // Initialiser la grille au chargement de la page
+            mettreAJour();
+
+        });
+
         function mettreAJourGrille(grille) {
             var html = "<table>";
             for (var y = 0; y < grille.length; y++) {
@@ -93,9 +184,10 @@
             document.getElementById("grille").innerHTML = html;
         }
 
+
         function mettreAJour() {
             var xhr = new XMLHttpRequest();
-            xhr.open("GET", "miseAJour.php", true);
+            xhr.open("GET", "miseAJour.php?size=" + $('#size').val() + "&min=" + $('#policyMin').val() + "&max=" + $('#policyMax').val(), true);
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == 4 && xhr.status == 200) {
                     var grille = JSON.parse(xhr.responseText);
@@ -105,19 +197,13 @@
             xhr.send();
         }
 
-        // Mettre à jour la grille toutes les 500ms
-        setInterval(mettreAJour, 100);
-
-        var dataReceived = [];
-
-        // Initialiser la grille au chargement de la page
-        mettreAJour();
 
         var msgBox = $('#message-box');
         var wsUri = "ws://localhost:8088/sock.php";
         websocket = new WebSocket(wsUri);
 
         websocket.onopen = function (ev) { // connection is open 
+
             msgBox.append('<div class="system_msg" style="color:#bbbbbb">Welcome to my "Demo WebSocket Chat box"!</div>'); //notify user
         }
         // Message received from server
@@ -161,7 +247,7 @@
             var message_input = $('#message'); //user message text
             var name_input = $('#name'); //user name
 
-            if (message_input.val() == "") { //empty name?
+            if (name_input.val() == "") { //empty name?
                 alert("Enter your Name please!");
                 return;
             }
@@ -176,14 +262,28 @@
                 name: name_input.val(),
                 color: 'green'
             };
-            console.log(msg);
+            console.log(JSON.stringify(msg));
             //convert and send data to server
             websocket.send(JSON.stringify(msg));
             message_input.val(''); //reset message input
         }
 
+        function generateWebSocketKey() {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';
+            let key = '';
 
-        
+            // Générer une chaîne aléatoire de longueur 16
+            for (let i = 0; i < 16; i++) {
+                key += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            // Encoder en base64
+            return btoa(key);
+        }
+
+        // Utilisation de la fonction pour générer la clé WebSocket
+        const webSocketKey = generateWebSocketKey();
+
     </script>
 </body>
 
