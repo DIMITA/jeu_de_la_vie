@@ -2,7 +2,7 @@
 
 // Fonctions pour générer et calculer la grille
 
-function genererGrilleAleatoire($largeur, $hauteur)
+function genererGrilleAleatoire($largeur = 20, $hauteur = 20)
 {
     $grille = array();
     for ($y = 0; $y < $hauteur; $y++) {
@@ -14,7 +14,7 @@ function genererGrilleAleatoire($largeur, $hauteur)
     return $grille;
 }
 
-function calculerGenerationSuivante($grille, $largeur, $hauteur)
+function calculerGenerationSuivante($grille, $min, $max, $largeur = 20, $hauteur = 20)
 {
     $nouvelleGrille = array();
 
@@ -37,9 +37,10 @@ function calculerGenerationSuivante($grille, $largeur, $hauteur)
                 }
             }
 
+
             // Appliquer les règles du jeu de la vie
             if ($grille[$y][$x]) {
-                if ($voisinsVivants == (int) $_GET["min"] || $voisinsVivants == (int) $_GET["max"]) {
+                if ($voisinsVivants == (int) $min || $voisinsVivants == (int) $max) {
                     $nouvelleGrille[$y][$x] = 1; // La cellule reste vivante
                 } else {
                     $nouvelleGrille[$y][$x] = 0; // La cellule meurt
@@ -59,16 +60,14 @@ function calculerGenerationSuivante($grille, $largeur, $hauteur)
 
 
 // Paramètres de la grille
-$largeur = (int) $_GET["size"];
-$hauteur = (int) $_GET["size"];
 
 // Récupérer la grille actuelle depuis une source (base de données, fichier, etc.)
 // Dans cet exemple, nous utilisons une grille aléatoire pour la démonstration
-$grille = genererGrilleAleatoire($largeur, $hauteur);
+// $grille = genererGrilleAleatoire($largeur, $hauteur);
 
 // Calculer la prochaine génération de la grille
-$grille = calculerGenerationSuivante($grille, $largeur, $hauteur);
+// $grille = calculerGenerationSuivante($grille, $largeur, $hauteur);
 
 // Envoyer la grille au format JSON
-header('Content-Type: application/json');
-echo json_encode($grille);
+// header('Content-Type: application/json');
+// echo json_encode($grille);
