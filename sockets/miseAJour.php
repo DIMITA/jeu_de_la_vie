@@ -2,7 +2,7 @@
 
 // Fonctions pour générer et calculer la grille
 
-function genererGrilleAleatoire($largeur = 20, $hauteur = 20)
+function genererGrilleAleatoire($largeur = 30, $hauteur = 30)
 {
     $grille = array();
     for ($y = 0; $y < $hauteur; $y++) {
@@ -14,7 +14,7 @@ function genererGrilleAleatoire($largeur = 20, $hauteur = 20)
     return $grille;
 }
 
-function calculerGenerationSuivante($grille, $min, $max, $largeur = 20, $hauteur = 20)
+function calculerGenerationSuivante($grille, $min, $max, $largeur = 30, $hauteur = 30)
 {
     $nouvelleGrille = array();
 
@@ -40,13 +40,13 @@ function calculerGenerationSuivante($grille, $min, $max, $largeur = 20, $hauteur
 
             // Appliquer les règles du jeu de la vie
             if ($grille[$y][$x]) {
-                if ($voisinsVivants == (int) $min || $voisinsVivants == (int) $max) {
+                if ($voisinsVivants == $min || $voisinsVivants == $max) {
                     $nouvelleGrille[$y][$x] = 1; // La cellule reste vivante
                 } else {
                     $nouvelleGrille[$y][$x] = 0; // La cellule meurt
                 }
             } else {
-                if ($voisinsVivants == 3) {
+                if ($voisinsVivants == $max) {
                     $nouvelleGrille[$y][$x] = 1; // La cellule naît
                 } else {
                     $nouvelleGrille[$y][$x] = 0; // La cellule reste morte

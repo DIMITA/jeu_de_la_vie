@@ -8,15 +8,6 @@ $options = [
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token');
-$dbh;
-
-try {
-    $dbh = new PDO('mysql:host=localhost;dbname=jeudelavie', 'root', 'root');
-    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    echo "Connected to bdd \n";
-} catch (PDOException $e) {
-    echo "erreur lors de la connexion à la bdd \n";
-}
 // Définition des en-têtes CORS
 
 // Définition de l'adresse IP et du port du serveur WebSocket
@@ -103,12 +94,14 @@ while (true) {
 
                     global $grille;
                     $rule = getRule($user_message);
+
                     $grille = calculerGenerationSuivante($grille, intval($rule[1]), intval($rule[2]));
-                    send_message(mask(json_encode(array('type' => 'grille', 'message' => $grille))));
                     if ($user_name !== "init") {
                         $response_text = mask(json_encode(array('type' => 'usermsg', 'name' => $user_name, 'message' => 'Nouvelle règle ' . $user_message, 'color' => $user_color)));
                         send_message($response_text);
-                    }
+                    } else {
+                    send_message(mask(json_encode(array('type' => 'grille', 'message' => $grille))));
+                    } 
                     continue;
                 }
 
@@ -134,34 +127,6 @@ function send_message($msg)
     return true;
 }
 
-function createUser($user)
-{
-    try {
-        global $options;
-        $sql = "INSERT INTO MyGuests (name, password)
-            VALUES (" . $user['name'] . ", " . password_hash($user['password'], PASSWORD_BCRYPT, $options) . ")";
-        global $dbh;
-        $dbh->exec($sql);
-        send_message(json_encode($user));
-    } catch (PDOException $e) {
-        echo $sql . "<br>" . $e->getMessage();
-    }
-}
-
-function getUserByName($name)
-{
-    try {
-        global $options;
-        $sql = "SELECT * FROM user WHERE name =  " . $name;
-        global $dbh;
-        $stmt = $dbh->prepare($sql);
-        $stmt->execute();
-        $user = $stmt->setFetchMode(PDO::FETCH_ASSOC);
-        return $user;
-    } catch (PDOException $e) {
-        echo $sql . "<br>" . $e->getMessage();
-    }
-}
 
 function getRule($name)
 {
