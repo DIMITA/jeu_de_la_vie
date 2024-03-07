@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de la vie</title>
+
+    <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        table td {
+            width: 20px;
+            height: 20px;
+            border: 1px solid black;
+        }
+
+        .chat-wrapper {
+            font: bold 11px/normal 'lucida grande', tahoma, verdana, arial, sans-serif;
+            background: #00a6bb;
+            padding: 20px;
+            margin: 20px auto;
+            box-shadow: 2px 2px 2px 0px #00000017;
+            max-width: 700px;
+            min-width: 500px;
+        }
+
+        #message-box {
+            width: 99%;
+            display: inline-block;
+            height: 300px;
+            background: #fff;
+            box-shadow: inset 0px 0px 2px #00000017;
+            overflow: auto;
+            padding: 10px;
+        }
+
+        .user-panel {
+            margin-top: 10px;
+        }
+
+        input[type=text] {
+            border: none;
+            padding: 5px 5px;
+            box-shadow: 2px 2px 2px #0000001c;
+        }
+
+        input[type=text]#name {
+            width: 20%;
+        }
+
+        input[type=text]#message {
+            width: 60%;
+        }
+
+        button#send-message {
+            border: none;
+            padding: 5px 15px;
+            background: #11e0fb;
+            box-shadow: 2px 2px 2px #0000001c;
+        }
+
+        .marquee-rtl {
+            max-width: 30em;
+            /* largeur de la fenêtre */
+            margin: 1em auto 2em;
+            overflow: hidden;
+            /* masque tout ce qui dépasse */
+        }
+
+        .marquee-rtl> :first-child {
+            display: inline-block;
+            /* modèle de boîte en ligne */
+            padding-right: 2em;
+            /* un peu d'espace pour la transition */
+            padding-left: 100%;
+            /* placement à droite du conteneur */
+            white-space: nowrap;
+            /* pas de passage à la ligne */
+            animation: defilement-rtl 15s infinite linear;
+        }
+
+        @keyframes defilement-rtl {
+            0% {
+                transform: translate3d(0, 0, 0);
+                /* position initiale à droite */
+            }
+
+            100% {
+                transform: translate3d(-100%, 0, 0);
+                /* position finale à gauche */
+            }
+        }
+    </style>
+
+
+</head>
+
+<body class="bg-gray-200 font-sans text-gray-700">
+    <div class="marquee-rtl">
+        <!-- le contenu défilant -->
+        <div>Le Jeu de la vie</div>
+    </div>
+
+    <div class="flex justify-between">
+
+        <div id="grille" class="flex justify-center mr-8"></div>
+        <div class="chat-wrapper">
+            <div id="message-box"></div>
+            <div class="user-panel">
+                <input type="text" name="name" id="name" placeholder="Your Name" maxlength="15" />
+                <input type="text" name="message" id="message" placeholder="Type your message here..."
+                    maxlength="100" />
+                <button id="send-message">Send</button>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+
+        var refreshIntervalId;
+
+        $(document).ready(function () {
+
+            const user = localStorage.getItem("user");
+            if (!user || user === "") {
+                window.location.replace(
+                    "/login.html",
+                );
+            } else {
+
+
+                setTimeout(() => {
+                    initGame();
+                    refreshIntervalId = setInterval(refresh, 400);
+                }, 1000);
+            }
+        });
+
+
+        function initGame() {
+            // Mettre à jour lagrille toutes les 500ms
+            var msg = {
+                message: "reset",
+                name: "init",
+                color: 'green'
+            };
+            console.log(JSON.stringify(msg));
+            //convert and send data to server
+            websocket.send(JSON.stringify(msg));
+
+            clearInterval(refreshIntervalId);
+
+        }
+
+        $('#stop-game').click();
+
+        function mettreAJourGrille(grille) {
+            var html = "<table>";
+            for (var y = 0; y < grille.length; y++) {
+                html += "<tr>";
+                for (var x = 0; x < grille[y].length; x++) {
+                    html += "<td style='background-color: " + (grille[y][x] ? 'black' : 'white') + "'></td>";
+                }
+                html += "</tr>";
+            }
+            html += "</table>";
+            document.getElementById("grille").innerHTML = html;
+        }
+
+
+        function mettreAJour() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "miseAJour.php?size=" + $('#size').val() + "&min=" + $('#policyMin').val() + "&max=" + $('#policyMax').val(), true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    var grille = JSON.parse(xhr.responseText);
+                    mettreAJourGrille(grille);
+                }
+            };
+            xhr.send();
+        }
+
+
+        var msgBox = $('#message-box');
+        var wsUri = "ws://localhost:8088/";
+        websocket = new WebSocket(wsUri);
+
+        websocket.onopen = function (ev) { // connection is open 
+
+            msgBox.append('<div class="system_msg" style="color:#bbbbbb">Welcome to my "Demo WebSocket Chat box"!</div>'); //notify user
+        }
+        // Message received from server
+        websocket.onmessage = function (ev) {
+            var response = JSON.parse(ev.data); //PHP sends Json data
+
+            var res_type = response.type; //message type
+            var message = response.message; //message text
+            var user_name = response.name; //user name
+            var user_color = response.color; //color
+
+            switch (res_type) {
+                case 'usermsg':
+                    msgBox.append('<div><span class="user_name" style="color:' + user_color + '">' + user_name + '</span> : <span class="user_message">' + message + '</span></div>');
+                    break;
+                case 'system':
+                    msgBox.append('<div style="color:#bbbbbb">' + message + '</div>');
+                    break;
+                case 'grille':
+                    mettreAJourGrille(message);
+                    break;
+            }
+            msgBox[0].scrollTop = msgBox[0].scrollHeight; //scroll message 
+
+
+
+        };
+
+        websocket.onerror = function (ev) { msgBox.append('<div class="system_error">Error Occurred - ' + ev.data + '</div>'); };
+        websocket.onclose = function (ev) { msgBox.append('<div class="system_msg">Connection Closed</div>'); };
+
+        //Message send button
+        $('#send-message').click(function () {
+            send_message();
+        });
+
+        //User hits enter key 
+        $("#message").on("keydown", function (event) {
+            if (event.which == 13) {
+                send_message();
+            }
+        });
+
+        //Send message
+        function send_message() {
+            var message_input = $('#message'); //user message text
+            var name_input = $('#name'); //user name
+
+            if (name_input.val() == "") { //empty name?
+                alert("Enter your Name please!");
+                return;
+            }
+            if (message_input.val() == "") { //emtpy message?
+                alert("Enter Some message Please!");
+                return;
+            }
+
+            //prepare json data
+            var msg = {
+                message: message_input.val(),
+                name: name_input.val(),
+                color: 'green'
+            };
+            
+            //convert and send data to server
+            websocket.send(JSON.stringify(msg));
+            message_input.val(''); //reset message input
+        }
+
+        function refresh(name) {
+
+
+            //prepare json data
+            var msg = {
+                message: name,
+                name: "init",
+                color: 'green'
+            };
+            //convert and send data to server
+            websocket.send(JSON.stringify(msg));
+        }
+
+    </script>
+</body>
+
+</html>
