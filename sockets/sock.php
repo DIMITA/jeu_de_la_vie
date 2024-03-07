@@ -1,13 +1,20 @@
 <?php
 
-// Définition des en-têtes CORS
+require_once('./miseAJour.php');
+
+$options = [
+    'cost' => 12,
+];
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token');
+// Définition des en-têtes CORS
 
 // Définition de l'adresse IP et du port du serveur WebSocket
 $adresse = '0.0.0.0'; // Toutes les adresses IP disponibles
 $port = 8088; // Port d'écoute du serveur WebSocket
+
+$grille = genererGrilleAleatoire();
 
 // Création du socket serveur
 $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -22,6 +29,7 @@ $clients = [$socket];
 
 // Boucle principale du serveur
 while (true) {
+
     // Gestion des nouveaux clients et des messages reçus
     $changed = $clients;
     socket_select($changed, $null, $null, 0, 10); // Surveillance des sockets
@@ -46,6 +54,7 @@ while (true) {
 
         // Notification de connexion au serveur
         socket_getpeername($socket_new, $ip);
+
         echo "Nouvelle connexion de $ip\n";
 
         // Suppression du socket d'écoute de la liste des sockets à surveiller
@@ -54,8 +63,6 @@ while (true) {
     }
 
     try {
-        //code...
-
 
         // Gestion des messages reçus des clients
         foreach ($changed as $changed_socket) {
@@ -71,14 +78,34 @@ while (true) {
                 echo "Connexion fermée avec $ip\n";
                 continue;
             } else {
-                // Traitement des données reçues (à implémenter selon le protocole WebSocket)
-                // print_r(json_decode($buf));
-                // $received_text = unmask($buf);
+
                 $tst_msg = json_decode($received_text, true);
                 // $tst_msg = json_decode($received_text, true); //json decode 
                 $user_name = $tst_msg['name']; //sender name
                 $user_message = $tst_msg['message']; //message text
                 $user_color = $tst_msg['color']; //color
+
+                if ($user_message === "reset") {
+                    global $grille;
+                    $grille = genererGrilleAleatoire();
+                    continue;
+                }
+                if (str_contains($user_message, "rule") || $user_name === "init") {
+
+                    global $grille;
+                    $rule = getRule($user_message);
+
+                    $grille = calculerGenerationSuivante($grille, intval($rule[1]), intval($rule[2]));
+                    if ($user_name !== "init") {
+                        $response_text = mask(json_encode(array('type' => 'usermsg', 'name' => $user_name, 'message' => 'Nouvelle règle ' . $user_message, 'color' => $user_color)));
+                        send_message($response_text);
+                    } else {
+                    send_message(mask(json_encode(array('type' => 'grille', 'message' => $grille))));
+                    } 
+                    continue;
+                }
+
+
 
                 //prepare data to be sent to client
                 $response_text = mask(json_encode(array('type' => 'usermsg', 'name' => $user_name, 'message' => $user_message, 'color' => $user_color)));
@@ -98,6 +125,13 @@ function send_message($msg)
         @socket_write($changed_socket, $msg, strlen($msg));
     }
     return true;
+}
+
+
+function getRule($name)
+{
+    $arr = explode("_", $name);
+    return $arr;
 }
 
 
@@ -144,4 +178,14 @@ function mask($text)
     elseif ($length >= 65536)
         $header = pack('CCNN', $b1, 127, $length);
     return $header . $text;
+}
+
+
+function setInterval($f, $milliseconds)
+{
+    $seconds = (int)$milliseconds / 1000;
+    while (true) {
+        $f();
+        sleep($seconds);
+    }
 }
